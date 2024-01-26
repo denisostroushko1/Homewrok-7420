@@ -1,0 +1,296 @@
+---
+title: "Denis Ostroushko - PUBH 7420 - HW1"
+format: pdf
+execute:
+  message: false 
+  warning: false
+  echo: false 
+---
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(gridExtra)
+```
+
+# Problem 1 
+
+```{r}
+random_number_seq <- c(5, 3, 7, 2, 3, 2, 2, 3, 4, 6, 3, 2, 8, 7, 5, 1, 4, 2, 4, 4)
+```
+
+### 1 - A
+
+Let four treatments be assigned the following symbols for representation randomization assignment: 
+
+  * NNC + patch = T1
+  * NNC + no patch = T2
+  * VLNC + patch = T3
+  * VLNC + no patch = T4
+  
+To get random treatment assignments we will use this rule: 
+
+  * assign to T1 if a random number is 1 or 5
+  * assign to T2 if a random number is 2 or 6
+  * assign to T3 if a random number is 3 or 7 
+  * assign to T4 if a random number is 4 or 8
+  * discard a random number if it is 0 or 9 
+  
+```{R}
+randomize_1_1 <- function(x){
+  case_when(x %in% c(1,5) ~ "T1", 
+            x %in% c(2,6) ~ "T2", 
+            x %in% c(3,7) ~ "T3", 
+            x %in% c(4,8) ~ "T4", 
+            T ~ "Discard") 
+}
+```
+
+A list of random numbers provided to us: 
+
+```{r}
+random_number_seq
+```
+
+Corresponding assignments to the entire list of numbers: 
+```{r}
+randomize_1_1(random_number_seq)
+```
+
+First ten assignments: 
+```{r}
+res <- randomize_1_1(random_number_seq)
+res <- res[res!= "Discard"]
+res %>% head(10)
+```
+
+### 1 - B
+
+Let two treatments and control be assigned the following symbols for representation randomization assignment: 
+
+  * NNC + no patch = C
+  * VLNC + no patch = T1
+  * VLNC + patch = T2
+  
+We want to have 1:1.5:1.5 ratio, which will randomize more participants to the two VLNC groups. Taking the ratios to whole numbers, we will work with 2:3:3 ratio. 
+
+To get random treatment assignments we will use this rule: 
+  * assign to C if a random number is 1 or 2
+  * assign to T1 if a random number is 3,5,7
+  * assign to T2 if a random number is 4,6,8
+  * discard 0 and 9 
+
+```{r}
+
+randomize_1_2 <- function(x){
+  case_when(x %in% c(1,2) ~ "C", 
+            x %in% c(3,5,7) ~ "T1", 
+            x %in% c(4,6,8) ~ "T2",  
+            T ~ "Discard") 
+}
+
+```
+
+
+Corresponding assignments to the entire list of numbers: 
+```{r}
+randomize_1_2(random_number_seq)
+```
+
+First ten assignments: 
+```{r}
+res <- randomize_1_2(random_number_seq)
+res <- res[res!= "Discard"]
+res %>% head(10)
+```
+
+### 1 - C
+
+Two possible block sizes are 3 and 6. We can extend this to further multiples of three, such as 9,12,15, etc... but for this 
+exercise I will stick with 3 and 6. 
+
+**Design**:
+
+  * For blocks of size 3 we will have the following combinations of C, T1, T2 (@tbl-opt-1):  
+
+```{r}
+#| label: tbl-opt-1
+#| tbl-cap: "Examples of blocks of size 3"
+#| 
+elements <- c("C", "T1", "T2")
+
+# Generate all possible combinations
+combinations <- expand.grid(elements, elements, elements)
+
+count_unique <- function(row) {
+  length(unique(row))
+}
+
+# Apply the function row-wise
+combinations$n_unique <- apply(combinations, 1, count_unique)
+
+combinations %>% 
+  filter(n_unique == 3) %>% 
+  arrange(Var1, Var2, Var3) %>% 
+  select(-n_unique) %>% 
+  mutate(block_id = 1:nrow(.)) -> combinations
+
+# Print the result
+kable(combinations, 
+      booktabs = T, 
+      align = 'c', 
+      col.names = c(" ", " ", " ", "Block ID"))%>%
+  kable_styling(position = "center")
+
+```
+
+* Ideally we want to have three of these combinations (due to the limited number of random numbers between 0 and 9)
+
+* So, I will sample three random numbers from 1 to 6 and use three block options that were randomly selected. Setting seed. 
+  randomly selected numbers are `r set.seed(108); block_ids <- sample(1:6, size = 3) %>% sort(); block_ids`
+  
+* Combinations to be used for schedule (@tbl-sel-1): 
+  
+```{r}
+#| label: tbl-sel-1
+#| tbl-cap: "Selected block desgins for blocks of size 3"
+
+  kable(combinations %>% filter(block_id %in% block_ids), 
+      booktabs = T, 
+      align = 'c', 
+      col.names = c(" ", " ", " ", "Block ID"))%>%
+  kable_styling(position = "center")
+```
+
+
+```{r}
+
+elements <- c("C", "T1", "T2")
+
+# Generate all possible combinations
+combinations2 <- expand.grid(elements, elements, elements,
+                            elements, elements, elements)
+
+count_unique <- function(row) {
+  length(unique(row))
+}
+
+count_type <- function(row, type){
+  length(which(row == type))
+}
+
+# Apply the function row-wise
+combinations2$n_unique <- apply(combinations2, 1, count_unique)
+combinations2$c_count <- apply(combinations2, 1, count_type, type = "C")
+combinations2$t1_count <- apply(combinations2, 1, count_type, type = "T1")
+combinations2$t2_count <- apply(combinations2, 1, count_type, type = "T2")
+
+combinations2 %>% 
+  filter(n_unique == 3 & 
+           c_count == 2 & 
+           t1_count == 2 & 
+           t2_count == 2) %>% 
+  arrange(Var1, Var2, Var3, Var4, Var5, Var6) %>% 
+  select(-n_unique, -c_count, -t1_count, -t2_count) %>% 
+  mutate(block_id = 1:nrow(.)) -> combinations2
+
+```
+
+* Similarly, for bock of size 6 we will have the following options. Each of C, T1, and T2 is represented in candidate blocks twice (@tbl-opt-2). I will print out the first five options out of the total `r nrow(combinations)`:
+
+```{r}
+#| label: tbl-opt-2
+#| tbl-cap: "Examples of blocks of size 6"
+
+  kable(combinations2 %>% head(5), 
+      booktabs = T, 
+      align = 'c', 
+      col.names = c(" ", " ", " ",
+                    " ", " ", " ",
+                    "Block ID"))%>%
+  kable_styling(position = "center")
+```
+
+* For these block options, I will select six random numbers between 1 and `r nrow(combinations2)`. These blocks will be used for randomization schedule: `r set.seed(208); blocks_ids_2 <- sample(1:nrow(combinations2), size = 6) %>% sort(); blocks_ids_2`
+
+* So, these blocks will be used when we sample a number corresponding to a block of size six (@tbl-sel-2): 
+
+```{r}
+#| label: tbl-sel-2
+#| tbl-cap: "Selected block desgins for blocks of size 6"
+
+  kable(combinations2 %>% filter(block_id %in% blocks_ids_2), 
+      booktabs = T, 
+      align = 'c', 
+      col.names = c(" ", " ", " ",
+                    " ", " ", " ",
+                    "Block ID"))%>%
+  kable_styling(position = "center")
+```
+
+We have a total of nine blocks, randomization schedule will be crated using this scheme: 
+
+  * use block of size 3 ID number `r block_ids[1]` when random number is 1. Next three study subjects will be assigned using a 
+    sequence from this block 
+    
+  * use block of size 3 ID number `r block_ids[2]` when random number is 2. Next three study subjects will be assigned using a 
+    sequence from this block 
+    
+  * use block of size 3 ID number `r block_ids[3]` when random number is 3. Next three study subjects will be assigned using a 
+    sequence from this block 
+    
+  * use block of size 6 ID number `r blocks_ids_2[1]` when random number is 4. Next six study subjects will be assigned using a 
+    sequence from this block 
+    
+  * use block of size 6 ID number `r blocks_ids_2[2]` when random number is 5. Next six study subjects will be assigned using a 
+    sequence from this block 
+    
+  * use block of size 6 ID number `r blocks_ids_2[3]` when random number is 6. Next six study subjects will be assigned using a 
+    sequence from this block 
+    
+  * use block of size 6 ID number `r blocks_ids_2[4]` when random number is 7. Next six study subjects will be assigned using a 
+    sequence from this block 
+    
+  * use block of size 6 ID number `r blocks_ids_2[5]` when random number is 8. Next six study subjects will be assigned using a 
+    sequence from this block 
+    
+  * use block of size 6 ID number `r blocks_ids_2[6]` when random number is 9. Next six study subjects will be assigned using a 
+    sequence from this block 
+    
+  * random number 0 will be discarded
+
+Randomization schedule according to the rule, first 10 observations printed: 
+
+```{r}
+c('C' ,  'T1' , 'T2' , 'T2', 'T1' ,  'C', 
+  "T1", "C", "T2", 
+  "C"
+  )
+```
+
+### 1 - D 
+
+* Step 1: 
+  - when random number = 0, let block size be 3
+  - when random number = 1, let block size be 6 
+  - ... 
+  - when random number = 9, let block size be 30
+  
+* Step 2: 
+  - for each block size option, find all possible combinations of Treatments and Control that correspond to 1:1:1 ratio 
+  - using random number sampling, select one of the options for each block and use results 
+  - This is the same algorithm that I described in part (C)
+  
+* Step 3: 
+  - Apply randomization scheme to the random number schedule and get a schedule, same idea as part (C)
+  - This works best for trials that have 100s of participants. 
+  
+# Problem 2 
+
+  * Source one: patients were invited to participate in trial, which may lead to the self-selection bias. People who are 
+    willing to participate in the study may be fundamentally different from those who decide to not participate. 
+    For example, they may be older, retired, and have more time to participate, which drives their decision. 
+  
+# Problem 3 
+
