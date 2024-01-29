@@ -294,3 +294,32 @@ c('C' ,  'T1' , 'T2' , 'T2', 'T1' ,  'C',
   
 # Problem 3 
 
+### 3 - A
+
+If, the ratios were 2:2:1, and there were 750 patents, then study planners desired to have 300 patients in IR and GR groups, and 
+150 patients in the NNC group 
+
+### 3 - B 
+
+We need to consider the total number of combinations of stratum resulting from a factorial design: 
+2 (for Age) $\times$ 2 (for menthol status) $\times$ 8 (for cites) = 32. Therefore, we will need 32 schedules. 
+
+### 3 - C 
+
+We need to ensure a 2:2:1 ratio, so a block of size five would be the smallest we can employ. 
+
+### 3 - D 
+
+Primary disadvantages are: 
+
+* Over stratification and impact on statistical power: We will have, on average, 750/32 =~ `r round(750/32, 1)` participants in each  stratum, which is a small number of people which may lead to highly variable estimator of the differences in the treatment results. 
+
+* Such level of stratification is administratively burdensome 
+
+* We will need to use multivariate regression models to adjust for prognostic variables still in order to do inference on such data. 
+
+What we can do instead: 
+
+* do random sampling of potential subjects for the study from each of these pre-specified stratum combinations 
+
+* With large enough sample size benefits of stratification will diminish. For our scenario, it might be the case that we need to recruit more subjects, and maybe stratify on just one prognostic variable. 
